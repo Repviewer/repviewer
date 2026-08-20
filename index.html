@@ -1,75 +1,1066 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>RepViewer by Geoloup</title>
-    <link rel="stylesheet" href="/style.css" />
-  </head>
-  <body class="comfortaa">
-    <header class="hero">
-      <div class="container">
-        <div class="logo">
-          <img src="svg/hat.svg">
-        </div>
-        <h1>RepViewer</h1>
-        <p class="tagline">
-          Your personal recipe collection, organized and beautiful.
-        </p>
-        <div class="download-section">
-          <button id="downloadBtn" class="download-btn">
-            <img src="svg/download.svg">
-            Download Now
-          </button>
-          <select id="platformSelect" class="version-select">
-            <option value="windows">Windows (Available)</option>
-            <option value="mac" disabled>macOS (Coming Soon)</option>
-            <option value="linux" disabled>Linux (Coming Soon)</option>
-          </select>
-          <div id="versionInfo" class="version-info">Loading version...</div>
-          <a href="/help.html" class="help-link">Need help installing?</a>
-        </div>
-      </div>
-    </header>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RepViewer v3</title>
 
-    <section class="features">
-      <div class="container">
-        <div class="feature-card">
-          <img src="svg/computer.svg"/>
-          <h3>Offline Access</h3>
-          <p>
-            Access your recipes anytime, anywhere, even without internet
-            connection.
-          </p>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Comfortaa:wght@400;600;700&display=swap" rel="stylesheet">
+    <link href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css" rel="stylesheet">
+
+    <style>
+        :root {
+            --bg-grad-1: #020617;
+            --bg-grad-2: #0f172a;
+            --card-bg: rgba(15, 23, 42, 0.75);
+            --card-border: rgba(56, 189, 248, 0.15);
+            --text-dim: #1e293b;
+            --text-mid: #94a3b8;
+            --text-bright: #ffffff;
+            --accent: #38bdf8;
+            --accent-glow: rgba(56, 189, 248, 0.4);
+            --accent-2: #34d399;
+            --font-body: 'Comfortaa', cursive;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        html {
+            scrollbar-color: var(--accent) rgba(15,23,42,0.4);
+        }
+
+        html, body {
+            overscroll-behavior: none;
+        }
+
+        body {
+            font-family: var(--font-body);
+            background: #020617;
+            color: var(--text-bright);
+            overflow-x: hidden;
+            position: relative;
+        }
+
+        /* Custom scrollbar (webkit) to match the palette */
+        ::-webkit-scrollbar {
+            width: 10px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #020617;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: linear-gradient(var(--accent), #0284c7);
+            border-radius: 10px;
+        }
+
+        /* Top scroll-progress bar — signature element */
+        .scroll-progress {
+            position: fixed;
+            top: 0;
+            left: 0;
+            height: 3px;
+            width: 0%;
+            background: linear-gradient(90deg, var(--accent-2), var(--accent));
+            z-index: 999;
+            box-shadow: 0 0 12px var(--accent-glow);
+            transition: width 0.05s linear;
+        }
+
+        .bg-canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            z-index: 0;
+            pointer-events: none;
+        }
+
+        #particle-icons-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            z-index: 0;
+            pointer-events: none;
+            overflow: hidden;
+        }
+
+        .particle-icon {
+            position: absolute;
+            transform-origin: center center;
+            will-change: transform, opacity;
+            top: 0;
+            left: 0;
+            display: inline-block;
+            line-height: 1;
+        }
+
+        /* Smooth-scroll content wrapper — the actual page content is
+           translated by JS with a lerp for a weighted, custom scroll feel,
+           while a spacer div reproduces its height so the native
+           scrollbar/progress stays accurate. */
+        #smooth-content {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            will-change: transform;
+        }
+
+        #scroll-spacer {
+            width: 1px;
+            pointer-events: none;
+        }
+
+        .music-player-widget {
+            position: fixed;
+            bottom: 25px;
+            right: 25px;
+            z-index: 99;
+            background: var(--card-bg);
+            backdrop-filter: blur(12px);
+            border: 1px solid var(--card-border);
+            padding: 10px 16px;
+            border-radius: 40px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+            transition: all 0.3s ease;
+        }
+
+        .music-player-widget:hover {
+            border-color: var(--accent);
+            box-shadow: 0 10px 30px var(--accent-glow);
+        }
+
+        .play-btn {
+            background: var(--accent);
+            color: #020617;
+            border: none;
+            width: 38px;
+            height: 38px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            font-size: 1.3rem;
+            transition: transform 0.08s ease-out, background-color 0.2s ease, box-shadow 0.08s ease-out;
+            flex-shrink: 0;
+        }
+
+        .play-btn:hover {
+            transform: scale(1.08);
+        }
+
+        .volume-control {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            color: var(--text-mid);
+            font-size: 1.1rem;
+        }
+
+        .volume-slider {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 60px;
+            height: 4px;
+            border-radius: 2px;
+            background: var(--text-dim);
+            outline: none;
+            cursor: pointer;
+            transition: opacity 0.2s;
+        }
+
+        .volume-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: var(--accent);
+            cursor: pointer;
+            box-shadow: 0 0 8px var(--accent-glow);
+        }
+
+        .volume-slider::-moz-range-thumb {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: var(--accent);
+            cursor: pointer;
+            border: none;
+            box-shadow: 0 0 8px var(--accent-glow);
+        }
+
+        .hero {
+            position: relative;
+            z-index: 1;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            padding: 80px 20px;
+        }
+
+        .hero-title {
+            font-family: var(--font-body);
+            font-weight: 700;
+            font-size: clamp(3rem, 9vw, 6rem);
+            line-height: 1.1;
+            margin-bottom: 10px;
+            display: flex;
+            gap: 2px;
+            letter-spacing: -2px;
+        }
+
+        .hero-title .letter {
+            font-family: var(--font-body);
+            font-weight: 700;
+            display: inline-block;
+            animation: pulseGlow 3s infinite ease-in-out;
+            animation-delay: calc(var(--char-index) * 0.15s);
+        }
+
+        .hero-title .letter.highlight {
+            color: var(--accent);
+        }
+
+        @keyframes pulseGlow {
+            0%, 100% {
+                transform: translateY(0);
+                text-shadow: 0 0 10px rgba(255, 255, 255, 0.2);
+            }
+            50% {
+                transform: translateY(-10px);
+                text-shadow: 0 0 25px var(--accent-glow), 0 0 40px var(--accent);
+            }
+        }
+
+        .version-subtitle {
+            font-family: var(--font-body);
+            font-weight: 700;
+            color: var(--accent);
+            font-size: 1.1rem;
+            letter-spacing: 3px;
+            margin-bottom: 25px;
+            text-transform: uppercase;
+        }
+
+        .hero p {
+            font-family: var(--font-body);
+            font-weight: 400;
+            color: var(--text-mid);
+            font-size: 1rem;
+            max-width: 650px;
+            line-height: 1.7;
+        }
+
+        .hero-actions {
+            display: flex;
+            gap: 16px;
+            flex-wrap: wrap;
+            justify-content: center;
+            margin-top: 32px;
+        }
+
+        .hero-btn {
+            font-family: var(--font-body);
+            font-weight: 700;
+            font-size: 0.98rem;
+            padding: 15px 30px;
+            border-radius: 40px;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            transition: all 0.3s ease;
+        }
+
+        .hero-btn.primary {
+            background: linear-gradient(135deg, var(--accent) 0%, #0284c7 100%);
+            color: #fff;
+            box-shadow: 0 4px 25px var(--accent-glow);
+        }
+
+        .hero-btn.primary:hover {
+            transform: translateY(-3px) scale(1.03);
+            box-shadow: 0 8px 35px var(--accent-glow);
+        }
+
+        .hero-btn.secondary {
+            background: transparent;
+            color: var(--text-bright);
+            border: 1px solid var(--card-border);
+        }
+
+        .hero-btn.secondary:hover {
+            border-color: var(--accent);
+            transform: translateY(-3px);
+            box-shadow: 0 8px 25px var(--accent-glow);
+        }
+
+        .scroll-cue {
+            position: absolute;
+            bottom: 40px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+            color: var(--text-mid);
+            font-size: 0.75rem;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            animation: floatCue 2.2s infinite ease-in-out;
+        }
+
+        @keyframes floatCue {
+            0%, 100% { transform: translateY(0); opacity: 0.6; }
+            50% { transform: translateY(8px); opacity: 1; }
+        }
+
+        .scroll-section {
+            position: relative;
+            z-index: 1;
+            padding: 20vh 20px;
+            max-width: 1100px;
+            margin: 0 auto;
+        }
+
+        .section-label {
+            font-family: var(--font-body);
+            font-weight: 700;
+            color: var(--accent);
+            font-size: 1.1rem;
+            text-transform: uppercase;
+            letter-spacing: 3px;
+            margin-bottom: 25px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .reveal-text {
+            font-family: var(--font-body);
+            font-size: clamp(1.8rem, 3.8vw, 2.8rem);
+            font-weight: 700;
+            line-height: 1.4;
+        }
+
+        .word {
+            font-family: var(--font-body);
+            font-weight: 700;
+            color: var(--text-dim);
+            transition: color 0.4s ease, text-shadow 0.4s ease, transform 0.4s ease;
+            display: inline-block;
+            margin-right: 0.25em;
+        }
+
+        .word.active {
+            color: var(--text-bright);
+            text-shadow: 0 0 20px rgba(56, 189, 248, 0.6);
+        }
+
+        /* Feature grid section */
+        .features-section {
+            position: relative;
+            z-index: 1;
+            max-width: 1100px;
+            margin: 0 auto;
+            padding: 18vh 20px 10vh;
+        }
+
+        .feature-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 22px;
+            margin-top: 40px;
+        }
+
+        .feature-card {
+            background: var(--card-bg);
+            backdrop-filter: blur(12px);
+            border: 1px solid var(--card-border);
+            border-radius: 18px;
+            padding: 30px 26px;
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+            opacity: 0;
+            transform: translateY(30px);
+            transition: opacity 0.6s cubic-bezier(0.16, 1, 0.3, 1),
+                        transform 0.6s cubic-bezier(0.16, 1, 0.3, 1),
+                        border-color 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .feature-card.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .feature-card:hover {
+            border-color: var(--accent);
+            box-shadow: 0 15px 30px rgba(0, 0, 0, 0.45), 0 0 20px var(--accent-glow);
+            transform: translateY(-6px);
+        }
+
+        .feature-icon {
+            width: 46px;
+            height: 46px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.4rem;
+            background: rgba(56, 189, 248, 0.12);
+            color: var(--accent);
+        }
+
+        .feature-card h4 {
+            font-family: var(--font-body);
+            font-weight: 700;
+            font-size: 1.15rem;
+            color: var(--text-bright);
+        }
+
+        .feature-card p {
+            font-family: var(--font-body);
+            font-weight: 400;
+            color: var(--text-mid);
+            font-size: 0.92rem;
+            line-height: 1.6;
+        }
+
+        .feature-tag {
+            align-self: flex-start;
+            font-size: 0.68rem;
+            font-weight: 700;
+            letter-spacing: 1.5px;
+            text-transform: uppercase;
+            padding: 4px 10px;
+            border-radius: 20px;
+            background: rgba(52, 211, 153, 0.15);
+            color: var(--accent-2);
+        }
+
+        .feature-tag.soon {
+            background: rgba(251, 191, 36, 0.15);
+            color: #fbbf24;
+        }
+
+        .download-section {
+            position: relative;
+            z-index: 1;
+            max-width: 800px;
+            margin: 10vh auto 15vh;
+            padding: 0 20px;
+        }
+
+        .download-card {
+            background: var(--card-bg);
+            backdrop-filter: blur(12px);
+            border: 1px solid var(--card-border);
+            border-radius: 24px;
+            padding: 50px 40px;
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 20px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            opacity: 0;
+            transform: translateY(40px);
+            transition: all 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        .download-card.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .download-card:hover {
+            border-color: var(--accent);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.6), 0 0 20px var(--accent-glow);
+        }
+
+        .download-card h3 {
+            font-family: var(--font-body);
+            font-weight: 700;
+            font-size: 1.8rem;
+            color: var(--text-bright);
+        }
+
+        .download-card .sub {
+            font-family: var(--font-body);
+            font-weight: 400;
+            color: var(--text-mid);
+            font-size: 0.9rem;
+            max-width: 480px;
+            line-height: 1.6;
+            margin-top: -10px;
+        }
+
+        .download-btn {
+            font-family: var(--font-body);
+            background: linear-gradient(135deg, var(--accent) 0%, #0284c7 100%);
+            color: #fff;
+            padding: 18px 42px;
+            border-radius: 40px;
+            text-decoration: none;
+            font-weight: 700;
+            font-size: 1.1rem;
+            box-shadow: 0 4px 25px var(--accent-glow);
+            transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .download-btn:hover {
+            transform: translateY(-3px) scale(1.03);
+            box-shadow: 0 8px 35px var(--accent-glow);
+        }
+
+        .version-info {
+            font-family: var(--font-body);
+            font-weight: 600;
+            color: var(--text-mid);
+            font-size: 0.9rem;
+            margin-top: 5px;
+        }
+
+        footer {
+            position: relative;
+            z-index: 1;
+            text-align: center;
+            padding: 60px 20px 100px;
+            color: var(--text-mid);
+            border-top: 1px solid rgba(56, 189, 248, 0.1);
+            background: rgba(2, 6, 23, 0.95);
+            backdrop-filter: blur(10px);
+            font-size: 0.9rem;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            align-items: center;
+            font-family: var(--font-body);
+            font-weight: 600;
+        }
+
+        .music-credit {
+            font-size: 0.8rem;
+            color: var(--text-mid);
+            margin-top: 4px;
+        }
+
+        .music-credit a {
+            color: var(--accent);
+            text-decoration: none;
+            transition: opacity 0.2s;
+        }
+
+        .music-credit a:hover {
+            text-decoration: underline;
+        }
+
+        .author {
+            font-family: var(--font-body);
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .author span {
+            color: var(--accent);
+            font-weight: 700;
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            .hero-title .letter,
+            .scroll-cue {
+                animation: none !important;
+            }
+            .feature-card,
+            .download-card {
+                transition: opacity 0.2s ease !important;
+                transform: none !important;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .scroll-section { padding: 12vh 20px; }
+            .features-section { padding: 12vh 20px 6vh; }
+            .download-card { padding: 35px 20px; }
+            .music-player-widget {
+                bottom: 15px;
+                right: 15px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="scroll-progress" id="scroll-progress"></div>
+
+    <canvas class="bg-canvas" id="bg-canvas"></canvas>
+    <div id="particle-icons-container"></div>
+
+    <div class="music-player-widget">
+        <button class="play-btn" id="music-toggle" aria-label="Play Music">
+            <i class='bx bx-play' id="music-icon"></i>
+        </button>
+        <div class="volume-control">
+            <i class='bx bx-volume-full'></i>
+            <input type="range" class="volume-slider" id="volume-slider" min="0" max="1" step="0.01" value="0.5">
         </div>
-        <div class="feature-card">
-          <img src="svg/time.svg"/>
-          <h3>File type support</h3>
-          <p>All file supported if not in app will be open with default one</p>
-        </div>
-        <div class="feature-card">
-          <img src="svg/shared.svg"/>
-          <h3>Shared Directory</h3>
-          <p>Support shared directory</p>
-        </div>
-      </div>
-    </section>
+        <audio id="bg-music" loop crossorigin="anonymous" src="https://static.geoloup.com/downloads/2026-08-19-21-01-33-5530.mp3.gz"></audio>
+    </div>
+
+    <div id="smooth-content">
+    <main>
+        <section class="hero">
+            <h1 class="hero-title" id="animated-title"></h1>
+            <div class="version-subtitle">v3 // THE FEATURE UPDATE</div>
+            <p>Turn your chaotic recipe folders into an ultra-fast, beautifully organized cookbook. Parse local directories instantly, keep everything private on your own server, and pull up any recipe from any device.</p>
+            <div class="hero-actions">
+                <a href="https://static.geoloup.com/repviewer/updates/RepViewer%20Setup%202.0.0.exe" class="hero-btn primary">
+                    <i class='bx bx-download'></i> Download Desktop App
+                </a>
+                <a href="https://repviewer-web.onrender.com/login.html" class="hero-btn secondary">
+                    <i class='bx bx-globe'></i> Open Web App
+                </a>
+            </div>
+            <div class="scroll-cue"><i class='bx bx-chevron-down'></i> scroll <i class='bx bx-chevron-down'></i></div>
+        </section>
+
+        <section class="scroll-section">
+            <span class="section-label"><i class='bx bx-restaurant'></i> // 01. Desktop App</span>
+            <div class="reveal-text" data-reveal>
+                Select a local folder in the desktop app to load your recipe files.
+                It automatically formats everything and syncs it to your server so you never copy files by hand again.
+            </div>
+        </section>
+
+        <section class="scroll-section">
+            <span class="section-label"><i class='bx bx-mobile-alt'></i> // 02. Web App</span>
+            <div class="reveal-text" data-reveal>
+                Need your recipes on your phone or a second screen?
+                The web app is built for devices where you can't run the desktop client. Sign in once, stay signed in, and your whole cookbook opens instantly — even mid-cooking, with your screen staying awake while a recipe is open.
+            </div>
+        </section>
+
+        <section class="scroll-section">
+            <span class="section-label"><i class='bx bx-group'></i> // 03. Family Sharing</span>
+            <div class="reveal-text" data-reveal>
+                Share your family recipe collection seamlessly with everyone at home.
+                Invite family and friends, set who can view or edit, and let everyone cook from the exact same up-to-date cookbook — no more "which version is the real one?"
+            </div>
+        </section>
+
+        <section class="features-section">
+            <span class="section-label"><i class='bx bx-bulb'></i> // 04. Built different</span>
+            <div class="reveal-text" data-reveal>
+                A cookbook that works the way you actually cook.
+            </div>
+
+            <div class="feature-grid">
+                <div class="feature-card">
+                    <div class="feature-icon"><i class='bx bx-lock-alt'></i></div>
+                    <h4>Local-first, no cloud</h4>
+                    <p>Your recipes live on your own server, not a third-party cloud. You own the files, end to end.</p>
+                </div>
+
+                <div class="feature-card">
+                    <div class="feature-icon"><i class='bx bx-file-find'></i></div>
+                    <h4>Built-in file viewers</h4>
+                    <p>Open images with OCR, PDFs, Word docs, and plain text right inside RepViewer — read fully formatted, no extra apps.</p>
+                </div>
+
+                <div class="feature-card">
+                    <div class="feature-icon"><i class='bx bx-brain'></i></div>
+                    <h4>AI-assisted correction</h4>
+                    <p>Clean up messy OCR text or rough notes with one click, then save a new version whenever you're ready — nothing uploads until you say so.</p>
+                </div>
+
+                <div class="feature-card">
+                    <div class="feature-icon"><i class='bx bx-plug'></i></div>
+                    <h4>Plugin-ready</h4>
+                    <p>An extensible plugin system is on the way, so RepViewer can grow with exactly what your kitchen needs.</p>
+                    <span class="feature-tag soon">Coming soon</span>
+                </div>
+            </div>
+        </section>
+
+        <section class="download-section">
+            <div class="download-card">
+                <h3>Get Desktop App</h3>
+                <p class="sub">Point it at your recipe folder once — RepViewer takes care of formatting, syncing, and keeping everything up to date after that.</p>
+                <a href="https://static.geoloup.com/repviewer/updates/RepViewer%20Setup%202.0.0.exe" id="download-btn" class="download-btn">
+                    <i class='bx bx-download'></i> Download Desktop App
+                </a>
+                <div class="version-info" id="version-info">
+                    Checking for latest version...
+                </div>
+            </div>
+        </section>
+    </main>
 
     <footer>
-      <div class="container">
-        <div class="footer-content">
-          <div class="brand">
-            <img src="svg/hat.svg" style="width: 25px;"/>
-            <span>RepViewer by Geoloup</span>
-          </div>
-          <div class="rating">
-            <img src="svg/star.svg" style="width: 25px;"/>
-            <span>Made with love by Gilaxy04 from geoloup</span>
-          </div>
+        <div>RepViewer v3</div>
+        <div class="author">Built by <span>gilaxy04</span></div>
+        <div class="music-credit">
+            Music by <a href="https://pixabay.com/users/bransboynd-51721546/?utm_source=link-attribution&utm_medium=referral&utm_campaign=music&utm_content=587455" target="_blank" rel="noopener noreferrer">Roman Rumyantsev</a> from <a href="https://pixabay.com/music//?utm_source=link-attribution&utm_medium=referral&utm_campaign=music&utm_content=587455" target="_blank" rel="noopener noreferrer">Pixabay</a>
         </div>
-      </div>
     </footer>
+    </div><!-- /#smooth-content -->
 
-    <script src="/main.js"></script>
-  </body>
+    <div id="scroll-spacer"></div>
+
+    <script>
+        const canvas = document.getElementById('bg-canvas');
+        const ctx = canvas.getContext('2d');
+        const iconsContainer = document.getElementById('particle-icons-container');
+
+        let particles = [];
+
+        const availableIcons = [
+            'bx-restaurant',
+            'bx-bowl-rice',
+            'bx-cookie',
+            'bx-dish',
+            'bx-cake',
+            'bx-coffee',
+            'bx-book-reader',
+            'bx-fridge',
+            'bx-lemon',
+            'bx-wine'
+        ];
+
+        const particleColors = [
+            '#38bdf8',
+            '#f43f5e',
+            '#fbbf24',
+            '#34d399',
+            '#a855f7',
+            '#fb923c',
+            '#e879f9',
+            '#4ade80'
+        ];
+
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+
+        class Particle {
+            constructor() {
+                this.iconEl = document.createElement('i');
+                const iconClass = availableIcons[Math.floor(Math.random() * availableIcons.length)];
+                this.iconEl.className = `bx ${iconClass} particle-icon`;
+                iconsContainer.appendChild(this.iconEl);
+
+                this.reset();
+            }
+
+            reset() {
+                this.x = Math.random() * canvas.width;
+                this.y = Math.random() * canvas.height;
+                this.speedX = (Math.random() - 0.5) * 0.4;
+                this.speedY = (Math.random() - 0.5) * 0.4;
+                this.opacity = Math.random() * 0.45 + 0.2;
+
+                this.iconSize = Math.floor(Math.random() * 16 + 22);
+                this.parallaxFactor = (this.iconSize / 38) * 0.5 + 0.2;
+
+                this.iconEl.style.fontSize = `${this.iconSize}px`;
+
+                const randomColor = particleColors[Math.floor(Math.random() * particleColors.length)];
+                this.iconEl.style.color = randomColor;
+            }
+
+            update(scrollDelta) {
+                this.x += this.speedX;
+                this.y += this.speedY - (scrollDelta * this.parallaxFactor);
+
+                if (this.x < -40) this.x = canvas.width + 40;
+                if (this.x > canvas.width + 40) this.x = -40;
+                if (this.y < -40) this.y = canvas.height + 40;
+                if (this.y > canvas.height + 40) this.y = -40;
+
+                const iconX = this.x - (this.iconSize / 2);
+                const iconY = this.y - (this.iconSize / 2);
+
+                this.iconEl.style.transform = `translate3d(${iconX}px, ${iconY}px, 0)`;
+                this.iconEl.style.opacity = this.opacity;
+            }
+        }
+
+        for (let i = 0; i < 50; i++) {
+            particles.push(new Particle());
+        }
+
+        /* ---------------------------------------------------------------
+           Custom smooth scroll: the real page content sits in a fixed
+           #smooth-content layer. A spacer div reproduces the content's
+           height so the browser gives us a normal, accessible scrollbar.
+           Each frame we lerp toward the native scroll position and
+           translate the content layer — giving scrolling a weighted,
+           deliberate feel instead of the default 1:1 jump. Respects
+           prefers-reduced-motion by snapping instantly instead of easing.
+        --------------------------------------------------------------- */
+        const smoothContent = document.getElementById('smooth-content');
+        const scrollSpacer = document.getElementById('scroll-spacer');
+        const scrollProgressBar = document.getElementById('scroll-progress');
+        const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+        let current = window.scrollY;
+        let target = window.scrollY;
+        const ease = reduceMotion ? 1 : 0.09;
+
+        function syncSpacerHeight() {
+            scrollSpacer.style.height = smoothContent.scrollHeight + 'px';
+        }
+
+        window.addEventListener('load', syncSpacerHeight);
+        window.addEventListener('resize', syncSpacerHeight);
+        // Content height can change as fonts/icons load and as feature
+        // cards animate in — keep the spacer honest for a short while.
+        let syncTicks = 0;
+        const syncInterval = setInterval(() => {
+            syncSpacerHeight();
+            syncTicks++;
+            if (syncTicks > 40) clearInterval(syncInterval);
+        }, 150);
+
+        window.addEventListener('scroll', () => {
+            target = window.scrollY;
+        }, { passive: true });
+
+        function smoothScrollLoop() {
+            const previous = current;
+            current += (target - current) * ease;
+            if (Math.abs(target - current) < 0.05) current = target;
+
+            const scrollDelta = current - previous;
+
+            smoothContent.style.transform = `translate3d(0, ${-current}px, 0)`;
+
+            const maxScroll = Math.max(scrollSpacer.offsetHeight - window.innerHeight, 1);
+            const progress = Math.min(Math.max(current / maxScroll, 0), 1);
+            scrollProgressBar.style.width = (progress * 100) + '%';
+
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            let gradient = ctx.createRadialGradient(
+                canvas.width / 2, canvas.height / 2, 0,
+                canvas.width / 2, canvas.height / 2, Math.max(canvas.width, canvas.height) / 1.5
+            );
+            gradient.addColorStop(0, '#0f172a');
+            gradient.addColorStop(1, '#020617');
+            ctx.fillStyle = gradient;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            particles.forEach(particle => {
+                particle.update(scrollDelta);
+            });
+
+            animateOnScroll();
+
+            requestAnimationFrame(smoothScrollLoop);
+        }
+
+        requestAnimationFrame(smoothScrollLoop);
+
+        const musicToggle = document.getElementById('music-toggle');
+        const musicIcon = document.getElementById('music-icon');
+        const bgMusic = document.getElementById('bg-music');
+        const volumeSlider = document.getElementById('volume-slider');
+
+        bgMusic.volume = 0.5;
+
+        /* Play button pulses with the live audio level via an analyser
+           tapped off the <audio> element — reacts to the music itself,
+           not just the volume slider. */
+        let audioCtx, analyser, dataArray, sourceNode;
+        let levelRAF = null;
+
+        function ensureAudioGraph() {
+            if (audioCtx) return;
+            audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            sourceNode = audioCtx.createMediaElementSource(bgMusic);
+            analyser = audioCtx.createAnalyser();
+            analyser.fftSize = 64;
+            sourceNode.connect(analyser);
+            analyser.connect(audioCtx.destination);
+            dataArray = new Uint8Array(analyser.frequencyBinCount);
+        }
+
+        const titleEl = document.getElementById('animated-title');
+
+        function pulseLoop() {
+            if (bgMusic.paused || !analyser) {
+                musicToggle.style.transform = '';
+                musicToggle.style.boxShadow = '';
+                titleEl.style.textShadow = '';
+                levelRAF = null;
+                return;
+            }
+            analyser.getByteFrequencyData(dataArray);
+            let sum = 0;
+            for (let i = 0; i < dataArray.length; i++) sum += dataArray[i];
+            const level = sum / dataArray.length / 255; // 0..1
+
+            const scale = 1 + level * 0.35;
+            musicToggle.style.transform = `scale(${scale})`;
+            musicToggle.style.boxShadow = `0 0 ${8 + level * 26}px var(--accent-glow)`;
+
+            titleEl.style.textShadow = `0 0 ${10 + level * 45}px var(--accent-glow)`;
+
+            levelRAF = requestAnimationFrame(pulseLoop);
+        }
+
+        musicToggle.addEventListener('click', () => {
+            ensureAudioGraph();
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+
+            if (bgMusic.paused) {
+                bgMusic.play();
+                musicIcon.className = 'bx bx-pause';
+                if (!levelRAF) levelRAF = requestAnimationFrame(pulseLoop);
+            } else {
+                bgMusic.pause();
+                musicIcon.className = 'bx bx-play';
+            }
+        });
+
+        volumeSlider.addEventListener('input', (e) => {
+            bgMusic.volume = e.target.value;
+        });
+
+        // Pause the music when the tab loses focus, resume where it left
+        // off when it regains focus — but only if the user hadn't already
+        // paused it themselves.
+        let wasPlayingBeforeHidden = false;
+
+        document.addEventListener('visibilitychange', () => {
+            if (document.hidden) {
+                wasPlayingBeforeHidden = !bgMusic.paused;
+                if (!bgMusic.paused) {
+                    bgMusic.pause();
+                    musicIcon.className = 'bx bx-play';
+                }
+            } else if (wasPlayingBeforeHidden) {
+                bgMusic.play();
+                musicIcon.className = 'bx bx-pause';
+                if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
+                if (!levelRAF) levelRAF = requestAnimationFrame(pulseLoop);
+            }
+        });
+
+        const titleText = "REPVIEWER";
+        const titleContainer = document.getElementById('animated-title');
+
+        titleText.split('').forEach((char, index) => {
+            const span = document.createElement('span');
+            span.innerText = char;
+            span.className = index >= 3 ? 'letter highlight' : 'letter';
+            span.style.setProperty('--char-index', index);
+            titleContainer.appendChild(span);
+        });
+
+        document.querySelectorAll('[data-reveal]').forEach(container => {
+            const text = container.innerText;
+            container.innerHTML = '';
+            const words = text.trim().split(/\s+/);
+
+            words.forEach(wordStr => {
+                const span = document.createElement('span');
+                span.className = 'word';
+                span.innerText = wordStr;
+                container.appendChild(span);
+                container.appendChild(document.createTextNode(' '));
+            });
+        });
+
+        const allWords = document.querySelectorAll('.word');
+        const downloadCard = document.querySelector('.download-card');
+        const featureCards = document.querySelectorAll('.feature-card');
+
+        function animateOnScroll() {
+            const viewportHeight = window.innerHeight;
+
+            allWords.forEach(word => {
+                const rect = word.getBoundingClientRect();
+                const wordCenter = rect.top + rect.height / 2;
+
+                if (wordCenter < viewportHeight * 0.7 && wordCenter > viewportHeight * 0.1) {
+                    word.classList.add('active');
+                } else {
+                    word.classList.remove('active');
+                }
+            });
+
+            if (downloadCard) {
+                const rect = downloadCard.getBoundingClientRect();
+                if (rect.top < viewportHeight * 0.85) {
+                    downloadCard.classList.add('visible');
+                }
+            }
+
+            featureCards.forEach((card, i) => {
+                const rect = card.getBoundingClientRect();
+                if (rect.top < viewportHeight * 0.88) {
+                    setTimeout(() => card.classList.add('visible'), i * 90);
+                }
+            });
+        }
+
+        async function fetchLatestVersion() {
+            const versionInfoEl = document.getElementById('version-info');
+            const downloadBtn = document.getElementById('download-btn');
+            const baseUrl = "https://static.geoloup.com/repviewer/updates/";
+            const ymlUrl = baseUrl + "latest.yml";
+
+            try {
+                const response = await fetch(ymlUrl);
+                if (!response.ok) throw new Error("Failed to fetch update file");
+                const text = await response.text();
+
+                const versionMatch = text.match(/version:\s*([^\s]+)/);
+                const pathMatch = text.match(/path:\s*([^\s]+)/);
+
+                if (versionMatch && pathMatch) {
+                    const latestVersion = versionMatch[1];
+                    const fileName = pathMatch[1];
+
+                    downloadBtn.href = baseUrl + encodeURIComponent(fileName);
+                    versionInfoEl.innerText = `Latest version: v${latestVersion} (Windows)`;
+                } else {
+                    versionInfoEl.innerText = "Version v2.0.0 (Windows)";
+                }
+            } catch (err) {
+                versionInfoEl.innerText = "Version v2.0.0 (Windows)";
+            }
+        }
+
+        fetchLatestVersion();
+        animateOnScroll();
+    </script>
+</body>
 </html>
